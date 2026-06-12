@@ -205,13 +205,15 @@ kill %1
 
 ## Verify ✅
 
-- [ ] `kubectl get nodes` → 3 nodes, all `STATUS Ready`, one with role `control-plane`
-- [ ] `docker ps --filter name=course --format '{{.Names}}'` → exactly `course-control-plane`, `course-worker`, `course-worker2`
-- [ ] `kubectl get node course-control-plane -o jsonpath='{.metadata.labels.ingress-ready}'` → `true`
-- [ ] `docker exec course-worker crictl images | grep podlab` → shows `podlab` with tag `v1`
-- [ ] `kubectl get pod podlab` → `Running`, `READY 1/1`
-- [ ] With a port-forward active, `curl -s localhost:8081/` → JSON containing `"app":"podlab"`, `"version":"dev"`, and a `"hostname":"podlab"` field
-- [ ] `stern podlab` shows a JSON log line for each curl you send
+- [x] `kubectl get nodes` → 3 nodes, all `STATUS Ready`, one with role `control-plane`
+- [x] `docker ps --filter name=course --format '{{.Names}}'` → exactly `course-control-plane`, `course-worker`, 
+  `course-worker2`
+- [x] `kubectl get node course-control-plane -o jsonpath='{.metadata.labels.ingress-ready}'` → `true`
+- [x] `docker exec course-worker crictl images | grep podlab` → shows `podlab` with tag `v1`
+- [x] `kubectl get pod podlab` → `Running`, `READY 1/1`
+- [x] With a port-forward active, `curl -s localhost:8081/` → JSON containing `"app":"podlab"`, `"version":"dev"`, 
+  and a `"hostname":"podlab"` field
+- [x] `stern podlab` shows a JSON log line for each curl you send
 
 ## Stretch goals
 
