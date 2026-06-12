@@ -1,0 +1,24 @@
+# Gauntlet 5/6 — "worked in staging"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-config
+  namespace: gauntlet
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-config
+  template:
+    metadata:
+      labels:
+        app: web-config
+    spec:
+      containers:
+      - name: podlab
+        image: podlab:v1
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: podlab-settings

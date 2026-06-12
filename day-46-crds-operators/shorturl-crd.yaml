@@ -1,0 +1,58 @@
+# Day 46 reference: a hand-written CRD with schema validation, printer
+# columns, and a status subresource. Apply, then `kubectl explain shorturl.spec`.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: shorturls.lab.example.com   # MUST be <plural>.<group>
+spec:
+  group: lab.example.com
+  scope: Namespaced
+  names:
+    kind: ShortURL
+    singular: shorturl
+    plural: shorturls
+    shortNames: ["su"]
+  versions:
+    - name: v1alpha1
+      served: true     # the apiserver answers requests for this version
+      storage: true    # this is the version persisted in etcd (exactly one true)
+      subresources:
+        status: {}     # /status becomes its own endpoint; spec and status get
+                       # separate RBAC and separate writers (users vs controller)
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: ["targetURL", "alias"]
+              properties:
+                targetURL:
+                  type: string
+                  pattern: '^https?://.+'   # validation runs IN the apiserver
+                  description: The full URL this short link points to.
+                alias:
+                  type: string
+                  minLength: 2
+                  maxLength: 30
+                  pattern: '^[a-z0-9-]+$'
+                  description: The short slug, e.g. "docs".
+            status:
+              type: object
+              properties:
+                ready:
+                  type: boolean
+                  description: Set by a controller once the redirect is live.
+      additionalPrinterColumns:
+        - name: Target
+          type: string
+          jsonPath: .spec.targetURL
+        - name: Alias
+          type: string
+          jsonPath: .spec.alias
+        - name: Ready
+          type: boolean
+          jsonPath: .status.ready
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp

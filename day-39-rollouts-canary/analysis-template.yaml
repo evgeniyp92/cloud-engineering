@@ -1,0 +1,29 @@
+# Day 39 — AnalysisTemplate: namespace success rate from Prometheus (reference solution)
+# NOTE: confirm the Prometheus service name first:
+#   kubectl get svc -n monitoring | grep prometheus
+#
+# count is deliberately omitted:
+#   - used INLINE (a step):   one measurement, pass/fail gate
+#   - used in BACKGROUND:     measures every `interval` until the rollout ends
+# failureLimit: 1 → the second failed measurement fails the run → automatic abort.
+#
+# Known limitation (see README): this query is namespace-scoped — it judges the
+# stable+canary BLEND, not the canary alone. Per-version query: see stretch goal.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: podlab-success-rate
+  namespace: rollouts-lab
+spec:
+  metrics:
+    - name: success-rate
+      interval: 30s
+      successCondition: result[0] >= 0.95
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring:9090
+          query: |
+            sum(rate(podlab_http_requests_total{namespace="rollouts-lab",code!~"5.."}[2m]))
+            /
+            sum(rate(podlab_http_requests_total{namespace="rollouts-lab"}[2m]))

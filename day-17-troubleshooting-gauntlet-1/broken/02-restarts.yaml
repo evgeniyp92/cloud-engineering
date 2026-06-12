@@ -1,0 +1,28 @@
+# Gauntlet 2/6 — "it keeps restarting and we don't know why"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-restarts
+  namespace: gauntlet
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-restarts
+  template:
+    metadata:
+      labels:
+        app: web-restarts
+    spec:
+      containers:
+      - name: podlab
+        image: podlab:v1
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 3
+          periodSeconds: 5
+          failureThreshold: 1

@@ -1,0 +1,24 @@
+# Day 15 — same cluster shape as Day 1, but with NO default CNI.
+# Cilium is installed by hand right after `kind create cluster`.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true   # no kindnet — nodes stay NotReady until Cilium lands
+  # kube-proxy stays (default); Cilium can replace it, but we keep moving parts minimal
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 8080
+    protocol: TCP
+  - containerPort: 443
+    hostPort: 8443
+    protocol: TCP
+- role: worker
+- role: worker

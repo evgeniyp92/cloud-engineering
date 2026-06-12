@@ -1,0 +1,27 @@
+# Gauntlet 3/6 — "the pod just sits there"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-pending
+  namespace: gauntlet
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-pending
+  template:
+    metadata:
+      labels:
+        app: web-pending
+    spec:
+      containers:
+      - name: podlab
+        image: podlab:v1
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: 50m
+            memory: 10Gi
+          limits:
+            memory: 10Gi

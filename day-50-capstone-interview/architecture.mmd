@@ -1,0 +1,82 @@
+%% Day 50 — full platform architecture. Customize: your GitHub user, hosts,
+%% anything you added/removed. Render: mermaid.live, or GitHub renders it
+%% natively inside ```mermaid fences in your README.
+flowchart TB
+    dev["Dev laptop\n(git push / git tag — the only interface)"]
+
+    subgraph github["GitHub"]
+        app_repo["podlab-app repo\n(Go source + Dockerfile\n+ Actions workflow)"]
+        gitops_repo["k8s-gitops repo\n(desired state: apps, policies,\ndashboards, alerts, bootstrap.sh)"]
+        actions["GitHub Actions\nbuild → test → trivy gate\n→ multi-arch push"]
+    end
+
+    ghcr["ghcr.io\npodlab:vX.Y.Z\n(amd64 + arm64)"]
+
+    subgraph cluster["kind cluster 'course' (1 cp + 2 workers)"]
+        cilium["Cilium CNI\n(NetworkPolicy enforcement)"]
+        ingress["ingress-nginx\nhttp :8080 / https :8443"]
+
+        subgraph gitops_engine["GitOps engine (ns argocd)"]
+            argocd["ArgoCD\napp-of-apps + sync waves\nautomated + selfHeal + prune"]
+            imgupd["Image Updater\nwatches ghcr (semver)"]
+        end
+
+        subgraph platform_svcs["Platform services"]
+            sealed["sealed-secrets\n(wave 0 — old key restored\nat bootstrap)"]
+            certmgr["cert-manager\n+ course-ca ClusterIssuer"]
+            kyverno["Kyverno\nrequire-team-label · disallow-latest\nmutate defaults · generate default-deny"]
+            rollouts["Argo Rollouts\ncanary 20→50→100\n+ AnalysisTemplates"]
+        end
+
+        subgraph workloads["Workloads"]
+            podlab_envs["podlab dev/stage/prod\n(kustomize overlays via\nApplicationSet)"]
+            guestbook["guestbook + Postgres\n(StatefulSet)"]
+        end
+
+        subgraph observability["Observability"]
+            prom["Prometheus\n(kube-prometheus-stack)"]
+            graf["Grafana\nRED dashboard (from git)"]
+            loki["Loki + Alloy\n(JSON logs)"]
+            tempo["Tempo\n(OTel traces)"]
+            am["Alertmanager\nPodlabHighErrorRate → webhook"]
+        end
+    end
+
+    %% ship path
+    dev -->|"push tag v*"| app_repo
+    app_repo --> actions
+    actions -->|"push image"| ghcr
+    dev -->|"PRs / manifests"| gitops_repo
+
+    %% control loop 1: image updater write-back
+    ghcr -.->|"poll: new semver?"| imgupd
+    imgupd -.->|"commit tag bump"| gitops_repo
+
+    %% control loop 2: gitops reconcile + selfHeal
+    gitops_repo -->|"desired state"| argocd
+    argocd -->|"sync"| platform_svcs
+    argocd -->|"sync"| workloads
+    argocd -.->|"selfHeal: revert drift"| workloads
+
+    %% control loop 3: canary analysis → rollback
+    rollouts -->|"shift traffic 20%"| podlab_envs
+    prom -.->|"success-rate query"| rollouts
+    rollouts -.->|"analysis fail → abort\n+ rollback"| podlab_envs
+
+    %% runtime paths
+    ghcr -->|"kubelet pulls"| workloads
+    ingress --> podlab_envs
+    ingress --> guestbook
+    certmgr -->|"TLS certs"| ingress
+    sealed -->|"decrypt → Secrets"| workloads
+    kyverno -.->|"admission: validate/mutate/generate"| workloads
+
+    %% observability flows
+    workloads -->|"/metrics"| prom
+    workloads -->|"logs"| loki
+    workloads -->|"traces"| tempo
+    prom --> graf
+    loki --> graf
+    tempo --> graf
+    prom --> am
+    am -->|"webhook"| dev

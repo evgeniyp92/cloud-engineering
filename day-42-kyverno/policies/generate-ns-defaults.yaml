@@ -1,0 +1,78 @@
+# Policy 4 — GENERATE: every new Namespace is born with guardrails:
+# a default-deny NetworkPolicy (Day 15) and a ResourceQuota (Day 9).
+#
+# NOTE: Kyverno's background controller needs RBAC to create these kinds —
+# the aggregated ClusterRole at the bottom grants it (this is the documented
+# pattern: label rbac.kyverno.io/aggregate-to-background-controller).
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: ns-defaults
+  annotations:
+    policies.kyverno.io/description: >-
+      Platform guardrails by default: new namespaces start closed
+      (default-deny) and bounded (quota). Teams open up deliberately.
+spec:
+  rules:
+    - name: generate-default-deny
+      match:
+        any:
+          - resources:
+              kinds:
+                - Namespace
+      exclude:
+        any:
+          - resources:
+              names:
+                - "kube-*"
+                - "kyverno"
+      generate:
+        synchronize: true        # re-create if someone deletes it
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        name: default-deny-all
+        namespace: "{{request.object.metadata.name}}"
+        data:
+          spec:
+            podSelector: {}
+            policyTypes:
+              - Ingress
+              - Egress
+    - name: generate-default-quota
+      match:
+        any:
+          - resources:
+              kinds:
+                - Namespace
+      exclude:
+        any:
+          - resources:
+              names:
+                - "kube-*"
+                - "kyverno"
+      generate:
+        synchronize: true
+        apiVersion: v1
+        kind: ResourceQuota
+        name: default-quota
+        namespace: "{{request.object.metadata.name}}"
+        data:
+          spec:
+            hard:
+              requests.cpu: "2"
+              requests.memory: 2Gi
+              pods: "20"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kyverno:generate-ns-defaults
+  labels:
+    rbac.kyverno.io/aggregate-to-background-controller: "true"
+rules:
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["create", "update", "delete", "get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["resourcequotas"]
+    verbs: ["create", "update", "delete", "get", "list", "watch"]

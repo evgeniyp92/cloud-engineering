@@ -1,0 +1,43 @@
+# Policy 2 — VALIDATE, Audit first: ban mutable image tags.
+# Two rules: a tag must be present (no tag implies :latest), and it must not
+# be :latest. Starts in Audit — violations land in PolicyReports without
+# blocking anyone. Flip failureAction to Enforce after reviewing the reports.
+# Matching Pods means Kyverno auto-generates rules for Deployments,
+# StatefulSets, DaemonSets, Jobs and CronJobs too (autogen).
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/description: >-
+      A tag is a mutable pointer: ':latest' today is not ':latest' tomorrow,
+      which makes rollbacks and incident forensics guesswork.
+spec:
+  background: true
+  rules:
+    - name: require-image-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        failureAction: Audit      # flip to Enforce after reviewing PolicyReports
+        message: "Image must include an explicit tag (an untagged image means :latest)."
+        pattern:
+          spec:
+            containers:
+              - image: "*:*"
+    - name: disallow-latest
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        failureAction: Audit      # flip to Enforce after reviewing PolicyReports
+        message: "Using ':latest' is not allowed — pin a version (or better, a digest)."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"

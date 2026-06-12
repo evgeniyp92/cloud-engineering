@@ -1,0 +1,28 @@
+# Policy 1 — VALIDATE, Enforce: every Deployment must declare an owning team.
+# `?*` means "any non-empty string". failureAction: Enforce → violating
+# Deployments are rejected at admission with the message below.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-team-label
+  annotations:
+    policies.kyverno.io/description: >-
+      Deployments without a team label are unpageable. Reject them.
+spec:
+  background: true          # also report on pre-existing resources
+  rules:
+    - name: check-team-label
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+      validate:
+        failureAction: Enforce
+        message: >-
+          Every Deployment needs a 'team' label so we know who to page.
+          Add metadata.labels.team (e.g. team: platform).
+        pattern:
+          metadata:
+            labels:
+              team: "?*"

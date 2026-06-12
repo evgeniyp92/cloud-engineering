@@ -1,0 +1,30 @@
+# Policy 3 — MUTATE: inject default resource requests when absent.
+# The +() anchor means "add only if the key does not exist" — pods that
+# declare their own requests are left untouched. (name): "*" applies the
+# patch to every container in the pod.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-default-resources
+  annotations:
+    policies.kyverno.io/description: >-
+      Requests-less pods are BestEffort QoS: invisible to the scheduler's
+      math and first against the wall under node pressure (Day 8). Give
+      forgetful manifests a sane floor instead of rejecting them.
+spec:
+  rules:
+    - name: add-default-requests
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      mutate:
+        patchStrategicMerge:
+          spec:
+            containers:
+              - (name): "*"
+                resources:
+                  requests:
+                    +(cpu): "50m"
+                    +(memory): "64Mi"

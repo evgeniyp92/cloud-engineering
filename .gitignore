@@ -1,0 +1,9 @@
+# local scratch space encouraged in lessons
+scratch/
+*.bak
+
+# kubeconfigs generated during RBAC/capstone labs — never commit credentials
+*.kubeconfig
+
+# unsealed secret manifests drafted during the sealed-secrets lessons
+*-unsealed.yaml

@@ -1,0 +1,101 @@
+# Day 38 — blue-green Rollout for podlab (reference solution)
+# Apply: kubectl apply -f rollout-bluegreen.yaml
+# Watch: kubectl argo rollouts get rollout podlab -n rollouts-lab -w
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: podlab
+  namespace: rollouts-lab
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: podlab
+  template:
+    metadata:
+      labels:
+        app: podlab
+    spec:
+      containers:
+        - name: podlab
+          image: podlab:v1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: VERSION
+              value: "1.0.0"     # → "2.0.0" for the v2 release
+            - name: COLOR
+              value: "blue"      # → "green" for the v2 release
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 5
+  strategy:
+    blueGreen:
+      activeService: podlab-active
+      previewService: podlab-preview
+      autoPromotionEnabled: false   # the gate: a human runs `promote`
+      scaleDownDelaySeconds: 60     # rollback window after promotion
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: podlab-active
+  namespace: rollouts-lab
+spec:
+  selector:
+    app: podlab   # controller adds rollouts-pod-template-hash on top
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: podlab-preview
+  namespace: rollouts-lab
+spec:
+  selector:
+    app: podlab
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: podlab-active
+  namespace: rollouts-lab
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: active.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: podlab-active
+                port:
+                  number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: podlab-preview
+  namespace: rollouts-lab
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: preview.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: podlab-preview
+                port:
+                  number: 80
