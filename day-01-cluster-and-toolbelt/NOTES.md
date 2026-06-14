@@ -74,3 +74,11 @@
 - Kubernetes kubectl reference - https://kubernetes.io/docs/reference/kubectl/
 - kind docs - https://kind.sigs.k8s.io/
 - k9s shortcuts - press `?` inside k9s
+
+## Generate pod spec from command line
+
+`kubectl run [image-name] --image=img --dry-run=client -o yaml > ./pod.yml`
+
+## Make sure to run initContainers as initContainers, not as regular containers
+
+Running initContainers as regular ones confuses K8s and marks the pod as not ready

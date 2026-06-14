@@ -246,12 +246,14 @@ exit
 
 ## Verify ✅
 
-- [ ] `kubectl get pod podlab-init -o jsonpath='{.status.phase}'` → `Running`
-- [ ] `curl -s localhost:8081/` (port-forward to `podlab-init`) → JSON where `pod_ip` equals `kubectl get pod podlab-init -o jsonpath='{.status.podIP}'` and `node_name` names a worker
-- [ ] `kubectl logs podlab-init -c wait-a-bit` → ends with `done`
-- [ ] `kubectl get pod podlab-sidecar` → `READY 2/2`; `kubectl logs podlab-sidecar -c logger --tail=3` → timestamped `hello from writer` lines
-- [ ] `kubectl exec podlab-init -- sh` → fails with `executable file not found`
-- [ ] `kubectl debug` shell: `wget -qO- localhost:8080/healthz` → `{"status":"ok"}`
+- [x] `kubectl get pod podlab-init -o jsonpath='{.status.phase}'` → `Running`
+- [x] `curl -s localhost:8081/` (port-forward to `podlab-init`) → JSON where `pod_ip` equals `kubectl get pod 
+podlab-init -o jsonpath='{.status.podIP}'` and `node_name` names a worker
+- [x] `kubectl logs podlab-init -c wait-a-bit` → ends with `done`
+- [x] `kubectl get pod podlab-sidecar` → `READY 2/2`; `kubectl logs podlab-sidecar -c logger --tail=3` → timestamped 
+  `hello from writer` lines
+- [x] `kubectl exec podlab-init -- sh` → fails with `executable file not found`
+- [x] `kubectl debug` shell: `wget -qO- localhost:8080/healthz` → `{"status":"ok"}`
 
 ## CKA corner 🎓
 

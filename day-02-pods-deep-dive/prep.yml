@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: prep
+  name: prep
+spec:
+  shareProcessNamespace: true
+  volumes:
+    - name: shared-dir
+      emptyDir: {}
+  initContainers:
+    - image: busybox
+      name: init
+      command:
+        - "sh"
+        - "-c"
+        - "touch index.html && echo '<h1>built by init</h1>' > /work/index.html"
+      volumeMounts:
+        - mountPath: /work
+          name: shared-dir
+  containers:
+    - image: nginx
+      name: nginx
+      volumeMounts:
+          - mountPath: /usr/share/nginx/html
+            name: shared-dir
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always

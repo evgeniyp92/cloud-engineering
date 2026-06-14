@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: twin
+  name: twin
+spec:
+  containers:
+  - image: busybox
+    command: ["sh", "-c", "while true; do wget -qO- localhost:80 >/dev/null && echo up; sleep 5; done;"]
+    name: poller
+    resources: {}
+  - image: nginx
+    name: web
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
