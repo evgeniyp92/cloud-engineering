@@ -106,7 +106,7 @@ spec:
 </details>
 
 ```sh
-kubectl apply -f deploy.yaml
+kubectl apply -f deploy.yml
 kubectl annotate deployment podlab kubernetes.io/change-cause="initial deploy, VERSION 1.0.0"
 kubectl get deploy,rs,pods -l app=podlab
 ```
@@ -160,7 +160,7 @@ Terminal 1: set the rollout knobs explicitly first. Edit `deploy.yaml`, adding u
 Also slow pod startup slightly so the rollout is humanly visible — add `minReadySeconds: 5` under `spec:`. Apply, then change the version:
 
 ```sh
-kubectl apply -f deploy.yaml
+kubectl apply -f deploy.yml
 kubectl set env deployment/podlab VERSION=2.0.0
 kubectl annotate deployment podlab kubernetes.io/change-cause="VERSION 2.0.0" --overwrite
 kubectl rollout status deployment/podlab

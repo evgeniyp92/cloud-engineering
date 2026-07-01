@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: careful
+  name: careful
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: careful
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 2
+  template:
+    metadata:
+      labels:
+        app: careful
+    spec:
+      containers:
+      - image: nginx:latest
+        name: nginx
+        resources: {}
